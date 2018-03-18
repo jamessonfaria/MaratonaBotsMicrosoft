@@ -2,6 +2,7 @@
 using Microsoft.Bot.Builder.Luis;
 using Microsoft.Bot.Builder.Luis.Models;
 using Newtonsoft.Json;
+using Projeto_MaratonaBots.Models;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -117,7 +118,7 @@ namespace Projeto_MaratonaBots.Dialogs
                 else
                 {
                     var json = await response.Content.ReadAsStringAsync();
-                    var resultado = JsonConvert.DeserializeObject<Models.Cotacao[]>(json);
+                    var resultado = JsonConvert.DeserializeObject<Cotacao[]>(json);
 
                     var cotacoes = resultado.Select(c => $"{c.Nome}: {c.valor}");
                     await context.PostAsync($"{string.Join(", ", cotacoes.ToArray())}");
@@ -135,21 +136,35 @@ namespace Projeto_MaratonaBots.Dialogs
         [LuisIntent("Filme_Serie")]
         public async Task IntencaoFilmeSerie(IDialogContext context, LuisResult result)
         {
-            var moedas = result.Entities?.Select(e => e.Entity);
-            var filtro = string.Join(",", moedas.ToArray());
+            var filme_serie = result.Entities?.Select(e => e.Entity);
+            string filtro = String.Join(" ", filme_serie.ToArray());
+            string retorno = "";
 
             if (filtro.Equals(""))
             {
-                string retorno = "";
-                retorno = "Entendi que você quer saber sobre o valor das cotações, mas para qual moeda ?";
+                if (result.Query.Contains("filmes") || result.Query.Contains("series") || result.Query.Contains("séries"))
+                {
+                    retorno = "Entendi que você quer saber sobre filmes ou séries, mas qual seria o filme ou série ?";                    
+                }
+                else if(result.Query.Contains("filme") || result.Query.Contains("serie") || result.Query.Contains("série"))
+                {
+                    retorno = "Não encontrei esse filme ou série na nossa base dados ...";
+                }
+                else
+                {
+                    retorno = "Fale mais um pouco sobre o filme ou série que procura ...";
+                }
+                
                 await context.PostAsync(retorno);
                 context.Done<string>(null);
                 return;
             }
 
-            string urlEndpoint = ConfigurationManager.AppSettings["EndpointCotacao"] + $"/{filtro}";
+            string parameters = $"api_key={ConfigurationManager.AppSettings["ApiKeyTMDB"]}&query={filtro}";  
 
-            await context.PostAsync("Aguarde um momento, estou obtendo os valores ...");
+            string urlEndpoint = ConfigurationManager.AppSettings["EndpointTheMovieDB"] + $"{parameters}";
+
+            await context.PostAsync("Aguarde um momento, estou consultando sobre filmes e séries ...");
 
             using (var client = new HttpClient())
             {
@@ -162,10 +177,11 @@ namespace Projeto_MaratonaBots.Dialogs
                 else
                 {
                     var json = await response.Content.ReadAsStringAsync();
-                    var resultado = JsonConvert.DeserializeObject<Models.Cotacao[]>(json);
+                    RootJson resultado = JsonConvert.DeserializeObject<RootJson>(json);
 
-                    var cotacoes = resultado.Select(c => $"{c.Nome}: {c.valor}");
-                    await context.PostAsync($"{string.Join(", ", cotacoes.ToArray())}");
+                    var filmes_series = resultado.Results.Select(c => $"{c.OriginalTitle}: {c.Title}");
+                    await context.PostAsync($"{string.Join(", ", filmes_series.ToArray())}");
+                    
                 }
 
                 return;
