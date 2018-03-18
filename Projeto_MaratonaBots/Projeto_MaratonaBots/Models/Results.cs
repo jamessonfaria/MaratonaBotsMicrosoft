@@ -17,5 +17,9 @@ namespace Projeto_MaratonaBots.Models
         [JsonProperty("release_date")]
         public string ReleaseDate { get; set; }
 
+        [JsonProperty("poster_path")]
+        public string PosterPath { get; set; }
+
+        
     }
 }

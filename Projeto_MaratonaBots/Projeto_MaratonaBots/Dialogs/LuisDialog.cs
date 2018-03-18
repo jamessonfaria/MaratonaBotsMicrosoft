@@ -1,6 +1,7 @@
 ﻿using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Builder.Luis;
 using Microsoft.Bot.Builder.Luis.Models;
+using Microsoft.Bot.Connector;
 using Newtonsoft.Json;
 using Projeto_MaratonaBots.Models;
 using System;
@@ -14,9 +15,9 @@ using System.Web;
 namespace Projeto_MaratonaBots.Dialogs
 {
     [Serializable]
-    public class RootDialog : LuisDialog<object>
+    public class LuisDialog : LuisDialog<object>
     {
-        public RootDialog(ILuisService service) : base(service) { }
+        public LuisDialog(ILuisService service) : base(service) { }
 
         /// <summary>
         /// Caso a intenção não seja reconhecida.
@@ -48,6 +49,17 @@ namespace Projeto_MaratonaBots.Dialogs
         {
             await context.PostAsync("Eu sou o James Bot, estou sempre aprendendo. Tenha paciência comigo.");
                                     
+            context.Done<string>(null);
+        }
+
+        /// <summary>
+        /// Intenção sobre.
+        /// </summary>
+        [LuisIntent("Agradecimento")]
+        public async Task IntencaoAgradecimento(IDialogContext context, LuisResult result)
+        {
+            await context.PostAsync("Muito obrigado, fico feliz, estou aqui para ajudar ....");
+
             context.Done<string>(null);
         }
 
@@ -179,9 +191,29 @@ namespace Projeto_MaratonaBots.Dialogs
                     var json = await response.Content.ReadAsStringAsync();
                     RootJson resultado = JsonConvert.DeserializeObject<RootJson>(json);
 
-                    var filmes_series = resultado.Results.Select(c => $"{c.OriginalTitle}: {c.Title}");
-                    await context.PostAsync($"{string.Join(", ", filmes_series.ToArray())}");
-                    
+                    if (resultado.TotalResults == 0)
+                    {
+                        await context.PostAsync("Não encontrei esse filme ou série na nossa base dados ...");                      
+                    }
+                    else
+                    {
+                        var filmes_series = resultado.Results;
+
+                        var activity = (Activity)context.Activity;
+                        var message = activity.CreateReply();
+
+                        foreach (Results element in filmes_series)
+                        {
+                            string urlImage = ConfigurationManager.AppSettings["EndpointImagemTMDB"] + element.PosterPath;
+                            var heroCard = CreateHeroCard(element.Title, element.ReleaseDate, urlImage);
+                            message.Attachments.Add(heroCard.ToAttachment());
+                        }
+
+                        await context.PostAsync(message);
+
+                    }
+
+
                 }
 
                 return;
@@ -191,6 +223,18 @@ namespace Projeto_MaratonaBots.Dialogs
         }
 
 
+        private HeroCard CreateHeroCard(string title, string subTitle, string image)
+        {
+            var heroCard = new HeroCard();
+            heroCard.Title = title;
+            heroCard.Subtitle = subTitle;
+            heroCard.Images = new List<CardImage>
+            {
+                new CardImage(image, title)
+            };
+
+            return heroCard;
+        }
 
     }
 }

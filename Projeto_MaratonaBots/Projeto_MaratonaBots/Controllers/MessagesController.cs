@@ -31,13 +31,14 @@ namespace Projeto_MaratonaBots
             switch (activity.Type)
             {
                 case ActivityTypes.Message:
-                    await Conversation.SendAsync(activity, () => new RootDialog(service));
+                    await Conversation.SendAsync(activity, () => new LuisDialog(service));
+                    
                     break;
                 case ActivityTypes.ConversationUpdate:
                     if (activity.MembersAdded.Any(o => o.Id == activity.Recipient.Id))
                     {
                         var reply = activity.CreateReply();
-                        reply.Text = "Olá, eu sou o **James Bot**. Olha abaixo o que eu posso fazer:\n" +
+                        reply.Text = "Olá, eu sou o **James Bot**. Olha abaixo o que eu posso fazer:\n\n" +
                                      "* **Falar que nem gente**\n" +
                                      "* **Realizar cotação de moedas**\n" +
                                      "* **Pesquisar sobre filmes e séries**\n";
