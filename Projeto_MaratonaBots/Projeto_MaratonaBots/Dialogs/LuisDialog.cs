@@ -53,7 +53,7 @@ namespace Projeto_MaratonaBots.Dialogs
         }
 
         /// <summary>
-        /// Intenção sobre.
+        /// Intenção agradecimento.
         /// </summary>
         [LuisIntent("Agradecimento")]
         public async Task IntencaoAgradecimento(IDialogContext context, LuisResult result)
